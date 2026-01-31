@@ -20,6 +20,20 @@
 		"@openauthjs/openauth": "^0.4.3",
 		"arctic": "^2.3.4",
 		"hono": "^4.11.7",
+		"resend": "^6.9.1",
 		"valibot": "^1.2.0"
+	},
+	"cloudflare": {
+		"bindings": {
+			"OPENAUTH_KV": {
+				"description": "KV namespace for storing authentication data (tokens, keys, password hashes)"
+			},
+			"RESEND_API_KEY": {
+				"description": "Your Resend API key for sending verification emails. Get one at https://resend.com/api-keys"
+			},
+			"EMAIL_FROM": {
+				"description": "Sender address for emails, e.g., 'App Name <noreply@yourdomain.com>'. Must use a verified domain in Resend."
+			}
+		}
 	}
 }

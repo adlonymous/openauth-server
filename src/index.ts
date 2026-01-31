@@ -1,19 +1,20 @@
 import { issuer } from "@openauthjs/openauth"
 import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare"
-import { CodeProvider } from "@openauthjs/openauth/provider/code"
-import { CodeUI } from "@openauthjs/openauth/ui/code"
+import { PasswordProvider } from "@openauthjs/openauth/provider/password"
+import { PasswordUI } from "./ui/password"  // Custom UI with resend on registration
 import { subjects } from "./subjects"
-import { Hono } from "hono"
+import { Resend } from "resend"
 
 /**
- * OpenAuth Issuer - With CloudflareStorage (Chunk 2)
+ * OpenAuth Issuer - With PasswordProvider + Resend Email (Chunk 4)
  * 
  * This OpenAuth server configuration uses:
- * - CloudflareStorage: Persistent KV storage for tokens, keys, and codes
- * - CodeProvider: Simple email/phone code-based authentication
+ * - CloudflareStorage: Persistent KV storage for tokens, keys, and password hashes
+ * - PasswordProvider: Full email/password authentication with registration, login, and reset
+ * - Resend: Email delivery for verification codes
  * 
- * The auth codes are logged to the console for testing purposes.
- * In production, you'll send these via email/SMS (Chunk 4).
+ * Required secrets:
+ * - RESEND_API_KEY: Your Resend API key
  */
 
 /**
@@ -27,28 +28,77 @@ function createApp(env: Env) {
     /**
      * Authentication providers
      * Each provider handles a different authentication method.
-     * The key (e.g., "code") becomes part of the URL: /code/authorize
+     * The key (e.g., "password") becomes part of the URL: /password/authorize
      */
     providers: {
       /**
-       * Code Provider - sends verification codes to email/phone
+       * Password Provider - full email/password authentication
+       * 
+       * Features:
+       * - User registration with email verification
+       * - Login with email/password
+       * - Password reset via email code
+       * - Secure password hashing (PBKDF2 with 600k iterations)
+       * 
        * Codes are logged to console for now. In Chunk 4, we'll use Resend for email.
        */
-      code: CodeProvider(
-        CodeUI({
+      password: PasswordProvider(
+        PasswordUI({
           /**
            * Called when a user needs to receive a verification code.
-           * @param claims - The user's claims (e.g., { email: "user@example.com" })
+           * This is used for:
+           * - Email verification during registration
+           * - Password reset requests
+           * 
+           * Uses Resend to deliver emails. Falls back to console.log if RESEND_API_KEY is not set.
+           * 
+           * @param email - The user's email address
            * @param code - The verification code to send
            */
-          sendCode: async (claims, code) => {
-            // For now, just log to console - check Worker logs to see the code
+          sendCode: async (email, code) => {
+            // Always log to console for debugging
             console.log("=".repeat(50))
             console.log("VERIFICATION CODE")
             console.log("=".repeat(50))
-            console.log("Claims:", JSON.stringify(claims, null, 2))
+            console.log("Email:", email)
             console.log("Code:", code)
             console.log("=".repeat(50))
+
+            // Send email via Resend if API key is available
+            if (env.RESEND_API_KEY) {
+              const resend = new Resend(env.RESEND_API_KEY)
+              
+              try {
+                const result = await resend.emails.send({
+                  from: env.EMAIL_FROM,
+                  to: email,
+                  subject: "Your verification code",
+                  html: `
+                    <div style="font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 20px;">
+                      <h2 style="color: #333; margin-bottom: 20px;">Verification Code</h2>
+                      <p style="color: #666; margin-bottom: 20px;">
+                        Use the following code to verify your email address:
+                      </p>
+                      <div style="background: #f4f4f4; padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 20px;">
+                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #333;">
+                          ${code}
+                        </span>
+                      </div>
+                      <p style="color: #999; font-size: 14px;">
+                        This code expires in 10 minutes. If you didn't request this, you can ignore this email.
+                      </p>
+                    </div>
+                  `,
+                })
+                
+                console.log("Email sent via Resend:", result)
+              } catch (error) {
+                console.error("Failed to send email via Resend:", error)
+                // Don't throw - the user can still see the code in logs during development
+              }
+            } else {
+              console.log("RESEND_API_KEY not set - email not sent")
+            }
           },
         })
       ),
@@ -67,7 +117,7 @@ function createApp(env: Env) {
      * - JWT signing keys (so tokens remain valid after restarts)
      * - Refresh tokens
      * - Authorization codes (short-lived, 60 seconds)
-     * - Password hashes (when PasswordProvider is added)
+     * - Password hashes (stored securely with PBKDF2)
      */
     storage: CloudflareStorage({
       namespace: env.OPENAUTH_KV,
@@ -82,16 +132,17 @@ function createApp(env: Env) {
      * The returned subject properties are encoded in the JWT access token.
      */
     success: async (ctx, value) => {
-      // For now, we only have the "code" provider
-      if (value.provider === "code") {
-        // value.claims contains { email: string } or { phone: string }
-        const email = value.claims.email
+      // Handle password provider authentication
+      if (value.provider === "password") {
+        // value.email contains the authenticated user's email
+        const email = value.email
 
         // In a real app, you'd look up or create the user in your database here
         // For now, we generate a random user ID
+        // TODO: In production, look up user by email and return existing userID
         const userID = crypto.randomUUID()
 
-        console.log("User authenticated:", { email, userID })
+        console.log("User authenticated via password:", { email, userID })
 
         // Return the subject that will be encoded in the JWT
         return ctx.subject("user", {
@@ -120,7 +171,7 @@ function createApp(env: Env) {
         jwks: "/.well-known/jwks.json",
         metadata: "/.well-known/oauth-authorization-server",
       },
-      providers: ["code"],
+      providers: ["password"],
     })
   })
 

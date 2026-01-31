@@ -1,0 +1,4 @@
+# Resend API Key for sending verification emails
+# Get yours at: https://resend.com/api-keys
+# Only "sending access" permission is required
+RESEND_API_KEY=re_xxxxxxxxxxxx

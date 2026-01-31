@@ -7,6 +7,10 @@ declare namespace Cloudflare {
 	}
 	interface Env {
 		OPENAUTH_KV: KVNamespace;
+		/** Resend API key for sending verification emails */
+		RESEND_API_KEY: string;
+		/** Sender address for verification emails (e.g., "App <noreply@yourdomain.com>") */
+		EMAIL_FROM: string;
 	}
 }
 interface Env extends Cloudflare.Env {}
