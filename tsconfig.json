@@ -6,13 +6,15 @@
 		"target": "es2024",
 		/* Specify a set of bundled library declaration files that describe the target runtime environment. */
 		"lib": ["es2024"],
-		/* Specify what JSX code is generated. */
+		/* Specify what JSX code is generated - required for OpenAuth UI components */
 		"jsx": "react-jsx",
+		/* Use Hono's JSX runtime for UI components */
+		"jsxImportSource": "hono/jsx",
 
 		/* Specify what module code is generated. */
-		"module": "es2022",
+		"module": "NodeNext",
 		/* Specify how TypeScript looks up a file from a given module specifier. */
-		"moduleResolution": "Bundler",
+		"moduleResolution": "NodeNext",
 		/* Enable importing .json files */
 		"resolveJsonModule": true,
 
@@ -41,5 +43,5 @@
 		]
 	},
 	"exclude": ["test"],
-	"include": ["worker-configuration.d.ts", "src/**/*.ts"]
+	"include": ["worker-configuration.d.ts", "src/**/*.ts", "src/**/*.tsx"]
 }

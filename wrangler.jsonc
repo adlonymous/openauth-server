@@ -7,9 +7,27 @@
 	"name": "openauth-server",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-01-28",
+	/**
+	 * Compatibility flags
+	 * nodejs_compat is required for OpenAuth's crypto operations
+	 * https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag
+	 */
+	"compatibility_flags": ["nodejs_compat"],
 	"observability": {
 		"enabled": true
-	}
+	},
+	/**
+	 * KV Namespaces
+	 * Used by OpenAuth for persistent storage of tokens, keys, and auth codes
+	 * https://developers.cloudflare.com/kv/concepts/kv-bindings/
+	 */
+	"kv_namespaces": [
+		{
+			"binding": "OPENAUTH_KV",
+			"id": "1f775ca09aba4608bbd7746214cf3c89",
+			"preview_id": "f73dfb035bad4554855c2398cb314572"
+		}
+	]
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

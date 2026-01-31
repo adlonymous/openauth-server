@@ -11,8 +11,15 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.12.4",
+		"@types/node": "^25.1.0",
 		"typescript": "^5.5.2",
 		"vitest": "~3.2.0",
 		"wrangler": "^4.61.1"
+	},
+	"dependencies": {
+		"@openauthjs/openauth": "^0.4.3",
+		"arctic": "^2.3.4",
+		"hono": "^4.11.7",
+		"valibot": "^1.2.0"
 	}
 }
