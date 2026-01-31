@@ -33,6 +33,12 @@
 			},
 			"EMAIL_FROM": {
 				"description": "Sender address for emails, e.g., 'App Name <noreply@yourdomain.com>'. Must use a verified domain in Resend."
+			},
+			"GITHUB_CLIENT_ID": {
+				"description": "GitHub OAuth App Client ID. Create one at https://github.com/settings/developers"
+			},
+			"GITHUB_CLIENT_SECRET": {
+				"description": "GitHub OAuth App Client Secret. Create one at https://github.com/settings/developers"
 			}
 		}
 	}

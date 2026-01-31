@@ -1,20 +1,23 @@
 import { issuer } from "@openauthjs/openauth"
 import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare"
 import { PasswordProvider } from "@openauthjs/openauth/provider/password"
+import { GithubProvider } from "@openauthjs/openauth/provider/github"
 import { PasswordUI } from "./ui/password"  // Custom UI with resend on registration
 import { subjects } from "./subjects"
 import { Resend } from "resend"
 
 /**
- * OpenAuth Issuer - With PasswordProvider + Resend Email (Chunk 4)
+ * OpenAuth Issuer - With Password + GitHub OAuth (Chunk 5)
  * 
  * This OpenAuth server configuration uses:
  * - CloudflareStorage: Persistent KV storage for tokens, keys, and password hashes
  * - PasswordProvider: Full email/password authentication with registration, login, and reset
+ * - GithubProvider: GitHub OAuth authentication
  * - Resend: Email delivery for verification codes
  * 
  * Required secrets:
  * - RESEND_API_KEY: Your Resend API key
+ * - GITHUB_CLIENT_SECRET: Your GitHub OAuth App client secret
  */
 
 /**
@@ -102,6 +105,20 @@ function createApp(env: Env) {
           },
         })
       ),
+
+      /**
+       * GitHub OAuth Provider
+       * 
+       * Allows users to authenticate with their GitHub account.
+       * Requires GITHUB_CLIENT_ID (env var) and GITHUB_CLIENT_SECRET (secret).
+       * 
+       * Callback URL: https://your-worker.workers.dev/github/callback
+       */
+      github: GithubProvider({
+        clientID: env.GITHUB_CLIENT_ID,
+        clientSecret: env.GITHUB_CLIENT_SECRET,
+        scopes: ["read:user", "user:email"],
+      }),
     },
 
     /**
@@ -151,8 +168,80 @@ function createApp(env: Env) {
         })
       }
 
+      // Handle GitHub OAuth authentication
+      if (value.provider === "github") {
+        const accessToken = value.tokenset.access
+
+        // Fetch user profile from GitHub API
+        const userResponse = await fetch("https://api.github.com/user", {
+          headers: {
+            Authorization: `token ${accessToken}`,
+            "User-Agent": "OpenAuth-Server",
+            Accept: "application/vnd.github.v3+json",
+          },
+        })
+        
+        if (!userResponse.ok) {
+          console.error("Failed to fetch GitHub user:", await userResponse.text())
+          throw new Error("Failed to fetch GitHub user profile")
+        }
+        
+        const userData = await userResponse.json() as {
+          id: number
+          login: string
+          name: string | null
+          email: string | null
+          avatar_url: string
+        }
+
+        // Fetch user emails to get primary verified email (in case profile email is null/private)
+        const emailsResponse = await fetch("https://api.github.com/user/emails", {
+          headers: {
+            Authorization: `token ${accessToken}`,
+            "User-Agent": "OpenAuth-Server",
+            Accept: "application/vnd.github.v3+json",
+          },
+        })
+
+        let primaryEmail = userData.email
+        if (emailsResponse.ok) {
+          const emails = await emailsResponse.json() as Array<{
+            email: string
+            primary: boolean
+            verified: boolean
+          }>
+          // Find the primary verified email
+          const primary = emails.find((e) => e.primary && e.verified)
+          if (primary) {
+            primaryEmail = primary.email
+          }
+        }
+
+        // TODO: In production, look up user by email or githubId in your database
+        // to link accounts and return existing userID
+        const userID = crypto.randomUUID()
+
+        console.log("User authenticated via GitHub:", {
+          userID,
+          githubId: userData.id,
+          username: userData.login,
+          email: primaryEmail,
+          name: userData.name,
+        })
+
+        // Return the subject that will be encoded in the JWT
+        return ctx.subject("user", {
+          userID,
+          email: primaryEmail || undefined,
+          githubId: String(userData.id),
+          username: userData.login,
+          name: userData.name || undefined,
+          avatarUrl: userData.avatar_url,
+        })
+      }
+
       // This shouldn't happen, but handle unknown providers
-      throw new Error(`Unknown provider: ${value.provider}`)
+      throw new Error(`Unknown provider: ${(value as { provider: string }).provider}`)
     },
   })
 
@@ -171,7 +260,7 @@ function createApp(env: Env) {
         jwks: "/.well-known/jwks.json",
         metadata: "/.well-known/oauth-authorization-server",
       },
-      providers: ["password"],
+      providers: ["password", "github"],
     })
   })
 

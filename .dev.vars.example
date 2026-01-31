@@ -2,3 +2,8 @@
 # Get yours at: https://resend.com/api-keys
 # Only "sending access" permission is required
 RESEND_API_KEY=re_xxxxxxxxxxxx
+
+# GitHub OAuth App Client Secret
+# Create an OAuth App at: https://github.com/settings/developers
+# Set callback URL to: https://your-worker.workers.dev/github/callback
+GITHUB_CLIENT_SECRET=your_github_client_secret

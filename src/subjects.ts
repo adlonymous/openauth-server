@@ -21,5 +21,13 @@ export const subjects = createSubjects({
     email: optional(string()),
     /** Solana wallet address (if authenticated via SIWS) */
     walletAddress: optional(string()),
+    /** GitHub user ID (if authenticated via GitHub) */
+    githubId: optional(string()),
+    /** Username/login (GitHub, etc.) */
+    username: optional(string()),
+    /** Display name */
+    name: optional(string()),
+    /** Avatar/profile picture URL */
+    avatarUrl: optional(string()),
   }),
 })

@@ -25,6 +25,7 @@
 	 * EMAIL_FROM: The sender address for verification emails (e.g., "App <noreply@yourdomain.com>")
 	 */
 	"vars": {
-		"EMAIL_FROM": "OpenAuth <noreply@kernux.org>"
+		"EMAIL_FROM": "OpenAuth <noreply@kernux.org>",
+		"GITHUB_CLIENT_ID": "Ov23liAjptKVI7Dsz6BV"
 	}
 }

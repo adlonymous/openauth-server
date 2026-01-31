@@ -11,6 +11,10 @@ declare namespace Cloudflare {
 		RESEND_API_KEY: string;
 		/** Sender address for verification emails (e.g., "App <noreply@yourdomain.com>") */
 		EMAIL_FROM: string;
+		/** GitHub OAuth App Client ID */
+		GITHUB_CLIENT_ID: string;
+		/** GitHub OAuth App Client Secret */
+		GITHUB_CLIENT_SECRET: string;
 	}
 }
 interface Env extends Cloudflare.Env {}
