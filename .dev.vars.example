@@ -7,3 +7,8 @@ RESEND_API_KEY=re_xxxxxxxxxxxx
 # Create an OAuth App at: https://github.com/settings/developers
 # Set callback URL to: https://your-worker.workers.dev/github/callback
 GITHUB_CLIENT_SECRET=your_github_client_secret
+
+# Google OAuth Client Secret
+# Create OAuth credentials at: https://console.cloud.google.com/apis/credentials
+# Set redirect URI to: https://your-worker.workers.dev/google/callback
+GOOGLE_CLIENT_SECRET=your_google_client_secret

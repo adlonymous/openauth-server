@@ -2,22 +2,25 @@ import { issuer } from "@openauthjs/openauth"
 import { CloudflareStorage } from "@openauthjs/openauth/storage/cloudflare"
 import { PasswordProvider } from "@openauthjs/openauth/provider/password"
 import { GithubProvider } from "@openauthjs/openauth/provider/github"
+import { GoogleProvider } from "@openauthjs/openauth/provider/google"
 import { PasswordUI } from "./ui/password"  // Custom UI with resend on registration
 import { subjects } from "./subjects"
 import { Resend } from "resend"
 
 /**
- * OpenAuth Issuer - With Password + GitHub OAuth (Chunk 5)
+ * OpenAuth Issuer - With Password + GitHub + Google OAuth (Chunk 6)
  * 
  * This OpenAuth server configuration uses:
  * - CloudflareStorage: Persistent KV storage for tokens, keys, and password hashes
  * - PasswordProvider: Full email/password authentication with registration, login, and reset
  * - GithubProvider: GitHub OAuth authentication
+ * - GoogleOidcProvider: Google OIDC authentication
  * - Resend: Email delivery for verification codes
  * 
  * Required secrets:
  * - RESEND_API_KEY: Your Resend API key
  * - GITHUB_CLIENT_SECRET: Your GitHub OAuth App client secret
+ * - GOOGLE_CLIENT_SECRET: Your Google OAuth client secret
  */
 
 /**
@@ -118,6 +121,20 @@ function createApp(env: Env) {
         clientID: env.GITHUB_CLIENT_ID,
         clientSecret: env.GITHUB_CLIENT_SECRET,
         scopes: ["read:user", "user:email"],
+      }),
+
+      /**
+       * Google OAuth Provider
+       * 
+       * Allows users to authenticate with their Google account.
+       * Requires GOOGLE_CLIENT_ID (env var) and GOOGLE_CLIENT_SECRET (secret).
+       * 
+       * Callback URL: https://your-worker.workers.dev/google/callback
+       */
+      google: GoogleProvider({
+        clientID: env.GOOGLE_CLIENT_ID,
+        clientSecret: env.GOOGLE_CLIENT_SECRET,
+        scopes: ["openid", "email", "profile"],
       }),
     },
 
@@ -240,6 +257,51 @@ function createApp(env: Env) {
         })
       }
 
+      // Handle Google OAuth authentication
+      if (value.provider === "google") {
+        const accessToken = value.tokenset.access
+
+        // Fetch user info from Google API
+        const userInfoResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        })
+
+        if (!userInfoResponse.ok) {
+          console.error("Failed to fetch Google user info:", await userInfoResponse.text())
+          throw new Error("Failed to fetch Google user profile")
+        }
+
+        const userInfo = await userInfoResponse.json() as {
+          id: string           // Google user ID
+          email?: string
+          verified_email?: boolean
+          name?: string
+          picture?: string
+        }
+
+        // TODO: In production, look up user by email or googleId in your database
+        // to link accounts and return existing userID
+        const userID = crypto.randomUUID()
+
+        console.log("User authenticated via Google:", {
+          userID,
+          googleId: userInfo.id,
+          email: userInfo.email,
+          name: userInfo.name,
+        })
+
+        // Return the subject that will be encoded in the JWT
+        return ctx.subject("user", {
+          userID,
+          email: userInfo.email,
+          googleId: userInfo.id,
+          name: userInfo.name,
+          avatarUrl: userInfo.picture,
+        })
+      }
+
       // This shouldn't happen, but handle unknown providers
       throw new Error(`Unknown provider: ${(value as { provider: string }).provider}`)
     },
@@ -260,7 +322,7 @@ function createApp(env: Env) {
         jwks: "/.well-known/jwks.json",
         metadata: "/.well-known/oauth-authorization-server",
       },
-      providers: ["password", "github"],
+      providers: ["password", "github", "google"],
     })
   })
 

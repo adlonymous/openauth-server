@@ -26,6 +26,7 @@
 	 */
 	"vars": {
 		"EMAIL_FROM": "OpenAuth <noreply@kernux.org>",
-		"GITHUB_CLIENT_ID": "Ov23liAjptKVI7Dsz6BV"
+		"GITHUB_CLIENT_ID": "Ov23liAjptKVI7Dsz6BV",
+		"GOOGLE_CLIENT_ID": "783509102286-vtuju4u7im1qe7se5s350kkbam7l0qdt.apps.googleusercontent.com"
 	}
 }

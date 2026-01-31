@@ -23,6 +23,8 @@ export const subjects = createSubjects({
     walletAddress: optional(string()),
     /** GitHub user ID (if authenticated via GitHub) */
     githubId: optional(string()),
+    /** Google user ID (if authenticated via Google) */
+    googleId: optional(string()),
     /** Username/login (GitHub, etc.) */
     username: optional(string()),
     /** Display name */

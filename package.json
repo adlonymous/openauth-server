@@ -39,6 +39,12 @@
 			},
 			"GITHUB_CLIENT_SECRET": {
 				"description": "GitHub OAuth App Client Secret. Create one at https://github.com/settings/developers"
+			},
+			"GOOGLE_CLIENT_ID": {
+				"description": "Google OAuth Client ID. Create one at https://console.cloud.google.com/apis/credentials"
+			},
+			"GOOGLE_CLIENT_SECRET": {
+				"description": "Google OAuth Client Secret. Create one at https://console.cloud.google.com/apis/credentials"
 			}
 		}
 	}
