@@ -4,17 +4,19 @@ import { PasswordProvider } from "@openauthjs/openauth/provider/password"
 import { GithubProvider } from "@openauthjs/openauth/provider/github"
 import { GoogleProvider } from "@openauthjs/openauth/provider/google"
 import { PasswordUI } from "./ui/password"  // Custom UI with resend on registration
+import { Select } from "@openauthjs/openauth/ui/select"
 import { subjects } from "./subjects"
 import { Resend } from "resend"
 
 /**
- * OpenAuth Issuer - With Password + GitHub + Google OAuth (Chunk 6)
+ * OpenAuth Issuer - With Provider Selection UI (Chunk 7)
  * 
  * This OpenAuth server configuration uses:
  * - CloudflareStorage: Persistent KV storage for tokens, keys, and password hashes
  * - PasswordProvider: Full email/password authentication with registration, login, and reset
  * - GithubProvider: GitHub OAuth authentication
- * - GoogleOidcProvider: Google OIDC authentication
+ * - GoogleProvider: Google OAuth authentication
+ * - Select UI: Provider selection page at /authorize
  * - Resend: Email delivery for verification codes
  * 
  * Required secrets:
@@ -143,6 +145,52 @@ function createApp(env: Env) {
      * Imported from ./subjects.ts
      */
     subjects,
+
+    /**
+     * Provider Selection UI
+     * 
+     * When users visit /authorize, they see a page with buttons to choose
+     * their authentication method (GitHub, Google, or Email & Password).
+     */
+    select: Select({
+      providers: {
+        github: { display: "GitHub" },
+        google: { display: "Google" },
+        password: { display: "Email & Password" },
+      },
+    }),
+
+    /**
+     * Allow callback - determines which clients can use this auth server
+     * 
+     * This controls which redirect_uri values are permitted.
+     * For development, we allow localhost and specific trusted domains.
+     */
+    allow: async (input) => {
+      const url = new URL(input.redirectURI)
+      const hostname = url.hostname
+
+      // Allow localhost for development
+      if (hostname === "localhost" || hostname === "127.0.0.1") {
+        return true
+      }
+
+      // Allow your trusted domains
+      const allowedDomains = [
+        "adlonymous.tech",
+        "kernux.org",
+        "openauth-server.adlonymous.workers.dev",
+      ]
+
+      // Check if hostname matches or is a subdomain of allowed domains
+      for (const domain of allowedDomains) {
+        if (hostname === domain || hostname.endsWith(`.${domain}`)) {
+          return true
+        }
+      }
+
+      return false
+    },
 
     /**
      * Storage adapter - CloudflareStorage using KV
