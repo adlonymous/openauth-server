@@ -4,18 +4,21 @@ import { PasswordProvider } from "@openauthjs/openauth/provider/password"
 import { GithubProvider } from "@openauthjs/openauth/provider/github"
 import { GoogleProvider } from "@openauthjs/openauth/provider/google"
 import { PasswordUI } from "./ui/password"  // Custom UI with resend on registration
+import { SolanaProvider } from "./providers/solana"  // SIWS provider
+import { SolanaUI } from "./ui/solana"  // Wallet selection UI
 import { Select } from "@openauthjs/openauth/ui/select"
 import { subjects } from "./subjects"
 import { Resend } from "resend"
 
 /**
- * OpenAuth Issuer - With Provider Selection UI (Chunk 7)
+ * OpenAuth Issuer - With Provider Selection UI (Chunk 8)
  * 
  * This OpenAuth server configuration uses:
  * - CloudflareStorage: Persistent KV storage for tokens, keys, and password hashes
  * - PasswordProvider: Full email/password authentication with registration, login, and reset
  * - GithubProvider: GitHub OAuth authentication
  * - GoogleProvider: Google OAuth authentication
+ * - SolanaProvider: Sign In With Solana (SIWS) wallet authentication
  * - Select UI: Provider selection page at /authorize
  * - Resend: Email delivery for verification codes
  * 
@@ -23,6 +26,9 @@ import { Resend } from "resend"
  * - RESEND_API_KEY: Your Resend API key
  * - GITHUB_CLIENT_SECRET: Your GitHub OAuth App client secret
  * - GOOGLE_CLIENT_SECRET: Your Google OAuth client secret
+ * 
+ * Optional environment variables:
+ * - SOLANA_CHAIN_ID: Solana network (mainnet, devnet, testnet). Defaults to mainnet.
  */
 
 /**
@@ -138,6 +144,21 @@ function createApp(env: Env) {
         clientSecret: env.GOOGLE_CLIENT_SECRET,
         scopes: ["openid", "email", "profile"],
       }),
+
+      /**
+       * Solana SIWS (Sign In With Solana) Provider
+       * 
+       * Allows users to authenticate with their Solana wallet.
+       * Supports Phantom, Solflare, Backpack, and other Wallet Standard compatible wallets.
+       * 
+       * Uses the Phantom SIWS standard (EIP-4361 style for Solana).
+       * Chain ID can be configured via SOLANA_CHAIN_ID env var (defaults to mainnet).
+       */
+      solana: SolanaProvider({
+        ui: SolanaUI(),
+        statement: "Sign in with your Solana wallet",
+        // chainId is read from env.SOLANA_CHAIN_ID or defaults to "mainnet"
+      }),
     },
 
     /**
@@ -157,6 +178,7 @@ function createApp(env: Env) {
         github: { display: "GitHub" },
         google: { display: "Google" },
         password: { display: "Email & Password" },
+        solana: { display: "Solana Wallet" },
       },
     }),
 
@@ -350,6 +372,26 @@ function createApp(env: Env) {
         })
       }
 
+      // Handle Solana SIWS authentication
+      if (value.provider === "solana") {
+        const walletAddress = value.address
+
+        // TODO: In production, look up user by walletAddress in your database
+        // to link accounts and return existing userID
+        const userID = crypto.randomUUID()
+
+        console.log("User authenticated via Solana:", {
+          userID,
+          walletAddress,
+        })
+
+        // Return the subject that will be encoded in the JWT
+        return ctx.subject("user", {
+          userID,
+          walletAddress,
+        })
+      }
+
       // This shouldn't happen, but handle unknown providers
       throw new Error(`Unknown provider: ${(value as { provider: string }).provider}`)
     },
@@ -370,7 +412,7 @@ function createApp(env: Env) {
         jwks: "/.well-known/jwks.json",
         metadata: "/.well-known/oauth-authorization-server",
       },
-      providers: ["password", "github", "google"],
+      providers: ["password", "github", "google", "solana"],
     })
   })
 

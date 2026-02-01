@@ -9,6 +9,13 @@
 		"head_sampling_rate": 1
 	},
 	/**
+	 * Static Assets
+	 * Serves the wallet-client.js bundle for SIWS authentication
+	 */
+	"assets": {
+		"directory": "./public"
+	},
+	/**
 	 * KV Namespaces
 	 * Used by OpenAuth for persistent storage of tokens, keys, and auth codes.
 	 * These will be automatically provisioned when using "Deploy to Cloudflare".
@@ -27,6 +34,7 @@
 	"vars": {
 		"EMAIL_FROM": "OpenAuth <noreply@kernux.org>",
 		"GITHUB_CLIENT_ID": "Ov23liAjptKVI7Dsz6BV",
-		"GOOGLE_CLIENT_ID": "783509102286-vtuju4u7im1qe7se5s350kkbam7l0qdt.apps.googleusercontent.com"
+		"GOOGLE_CLIENT_ID": "783509102286-vtuju4u7im1qe7se5s350kkbam7l0qdt.apps.googleusercontent.com",
+		"SOLANA_CHAIN_ID": "mainnet"
 	}
 }
