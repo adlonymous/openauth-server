@@ -4,6 +4,14 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2026-01-28",
 	"compatibility_flags": ["nodejs_compat"],
+	/**
+	 * Smart Placement
+	 * Automatically places the worker closer to backend services (KV) to reduce latency.
+	 * This helps reduce the time to load signing keys from KV storage.
+	 */
+	"placement": {
+		"mode": "smart"
+	},
 	"observability": {
 		"enabled": true,
 		"head_sampling_rate": 1
@@ -36,5 +44,46 @@
 		"GITHUB_CLIENT_ID": "Ov23liAjptKVI7Dsz6BV",
 		"GOOGLE_CLIENT_ID": "783509102286-vtuju4u7im1qe7se5s350kkbam7l0qdt.apps.googleusercontent.com",
 		"SOLANA_CHAIN_ID": "mainnet"
-	}
+	},
+	/**
+	 * Cron Triggers
+	 * Runs every minute to initialize the keep-alive Durable Object
+	 * and as a backup ping to keep the worker warm.
+	 */
+	"triggers": {
+		"crons": ["* * * * *"]
+	},
+	/**
+	 * Durable Objects
+	 * KeepAlive DO pings the worker every 10 seconds to prevent cold starts.
+	 */
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "KEEP_ALIVE",
+				"class_name": "KeepAlive"
+			}
+		]
+	},
+	/**
+	 * Migrations
+	 * Required when adding new Durable Object classes.
+	 */
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_classes": ["KeepAlive"]
+		}
+	],
+	/**
+	 * Service Bindings
+	 * Self-referencing binding allows the DO to make internal requests to this worker.
+	 * Note: If you rename the worker, update the "service" value to match.
+	 */
+	"services": [
+		{
+			"binding": "SELF",
+			"service": "openauth-server"
+		}
+	]
 }

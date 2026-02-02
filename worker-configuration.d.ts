@@ -19,6 +19,12 @@ declare namespace Cloudflare {
 		GOOGLE_CLIENT_ID: string;
 		/** Google OAuth Client Secret */
 		GOOGLE_CLIENT_SECRET: string;
+		/** Solana chain ID (mainnet, devnet, testnet) */
+		SOLANA_CHAIN_ID: string;
+		/** KeepAlive Durable Object namespace for warm-up pings */
+		KEEP_ALIVE: DurableObjectNamespace;
+		/** Self-referencing service binding for internal requests */
+		SELF: Fetcher;
 	}
 }
 interface Env extends Cloudflare.Env {}

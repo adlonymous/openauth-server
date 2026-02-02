@@ -10,6 +10,9 @@ import { Select } from "@openauthjs/openauth/ui/select"
 import { subjects } from "./subjects"
 import { Resend } from "resend"
 
+// Re-export KeepAlive Durable Object for wrangler
+export { KeepAlive } from "./keep-alive"
+
 /**
  * OpenAuth Issuer - With Provider Selection UI (Chunk 8)
  * 
@@ -433,5 +436,43 @@ export default {
   ): Promise<Response> {
     const app = createApp(env)
     return app.fetch(request, env, ctx)
+  },
+
+  /**
+   * Scheduled handler - Keep-alive cron trigger
+   * 
+   * Runs every minute to:
+   * 1. Initialize the KeepAlive Durable Object (which pings every 10 seconds)
+   * 2. Backup ping to keep this instance warm
+   */
+  async scheduled(
+    controller: ScheduledController,
+    env: Env,
+    ctx: ExecutionContext
+  ): Promise<void> {
+    // 1. Initialize the KeepAlive Durable Object if not already running
+    // The DO will ping every 10 seconds to keep the worker warm
+    try {
+      const keepAliveId = env.KEEP_ALIVE.idFromName("singleton")
+      const keepAlive = env.KEEP_ALIVE.get(keepAliveId)
+      const doResponse = await keepAlive.fetch(new Request("https://internal/start"))
+      const doStatus = await doResponse.json() as { status: string }
+      console.log("KeepAlive DO status:", doStatus)
+    } catch (error) {
+      console.error("Failed to initialize KeepAlive DO:", error)
+    }
+    
+    // 2. Backup: Also ping directly from cron (in case DO has issues)
+    try {
+      const app = createApp(env)
+      const request = new Request("https://internal/.well-known/jwks.json")
+      const response = await app.fetch(request, env, ctx)
+      console.log("Cron backup ping completed", { 
+        status: response.status,
+        time: new Date().toISOString() 
+      })
+    } catch (error) {
+      console.error("Cron backup ping failed:", error)
+    }
   },
 }
